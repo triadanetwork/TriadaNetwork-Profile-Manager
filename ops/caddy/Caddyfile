@@ -1,0 +1,21 @@
+{
+    email {$ACME_EMAIL}
+    auto_https disable_redirects
+}
+
+{$TRIADA_DOMAIN} {
+    encode zstd gzip
+    log {
+        output stdout
+        format json
+    }
+
+    @metrics path /metrics
+    respond @metrics 404
+
+    reverse_proxy cloud:8100 {
+        health_uri /health/live
+        health_interval 10s
+        health_timeout 3s
+    }
+}

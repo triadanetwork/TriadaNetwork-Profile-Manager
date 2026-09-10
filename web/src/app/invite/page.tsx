@@ -1,0 +1,10 @@
+'use client'
+import { useMemo, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { ShieldCheck } from 'lucide-react'
+
+export default function InvitePage(){
+ const params=useSearchParams(); const router=useRouter(); const token=params.get('token')||''; const [username,setUsername]=useState(''); const [password,setPassword]=useState(''); const [busy,setBusy]=useState(false); const [error,setError]=useState('');
+ const valid=useMemo(()=>token.length>=20,[token]);
+ async function submit(e:React.FormEvent){e.preventDefault();setBusy(true);setError('');try{const r=await fetch('/api/v1/auth/invites/accept',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,username,password})});const data=await r.json();if(!r.ok)throw new Error(data?.error?.message||data?.detail||'Invite could not be accepted');router.push('/')}catch(err){setError(err instanceof Error?err.message:'Invite could not be accepted')}finally{setBusy(false)}}
+ return <main className="min-h-screen grid place-items-center bg-canvas px-5"><div className="w-full max-w-[420px] panel p-6"><div className="flex items-center gap-2 mb-6"><ShieldCheck size={17}/><span className="font-semibold tracking-[0.12em]">TRIADA NETWORK</span></div><h1 className="text-lg font-semibold">Join workspace</h1><p className="mt-1 text-sm text-ink-faint">Create your account from the workspace invite.</p>{!valid?<div className="mt-5 text-sm text-danger">Missing or invalid invite token.</div>:<form onSubmit={submit} className="mt-5 space-y-3"><input className="field" placeholder="Username" value={username} onChange={e=>setUsername(e.target.value)} autoComplete="username"/><input className="field" placeholder="Password (10+ characters)" type="password" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="new-password"/><button className="btn-primary w-full justify-center" disabled={busy||!username||password.length<10}>{busy?'Creating account…':'Accept invite'}</button></form>}{error&&<div className="mt-3 text-[12px] text-danger">{error}</div>}</div></main> }

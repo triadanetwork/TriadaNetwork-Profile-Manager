@@ -1,0 +1,152 @@
+services:
+  app:
+    build: .
+    environment:
+      CPM_HOST: 0.0.0.0
+      CPM_PORT: 8000
+      CPM_DB_PATH: /data/profiles.db
+      CPM_CLOUD_ENABLED: "true"
+      CPM_CLOUD_BASE_URL: http://cloud:8100
+    volumes:
+      - cpm-data:/data
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      cloud:
+        condition: service_started
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: triada
+      POSTGRES_USER: triada
+      POSTGRES_PASSWORD: ${TRIADA_POSTGRES_PASSWORD:-change-me}
+    volumes:
+      - triada-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U triada -d triada"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - triada-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  cloud:
+    build: ./cloud_control_plane
+    environment:
+      TRIADA_CLOUD_ENVIRONMENT: development
+      TRIADA_CLOUD_DATABASE_URL: postgresql+asyncpg://triada:${TRIADA_POSTGRES_PASSWORD:-change-me}@postgres:5432/triada
+      TRIADA_CLOUD_REDIS_URL: redis://redis:6379/0
+      TRIADA_CLOUD_JWT_SECRET: ${TRIADA_CLOUD_JWT_SECRET:-change-this-before-production}
+      TRIADA_CLOUD_CORS_ORIGINS: '["http://localhost:3000"]'
+      TRIADA_CLOUD_HOST: 0.0.0.0
+      TRIADA_CLOUD_PORT: 8100
+      TRIADA_CLOUD_RATE_LIMIT_PER_MINUTE: ${TRIADA_CLOUD_RATE_LIMIT_PER_MINUTE:-120}
+      TRIADA_CLOUD_LOG_LEVEL: ${TRIADA_CLOUD_LOG_LEVEL:-INFO}
+      TRIADA_CLOUD_SENTRY_DSN: ${TRIADA_CLOUD_SENTRY_DSN:-}
+      TRIADA_CLOUD_SENTRY_TRACES_SAMPLE_RATE: ${TRIADA_CLOUD_SENTRY_TRACES_SAMPLE_RATE:-0.0}
+      TRIADA_CLOUD_OTEL_ENABLED: ${TRIADA_CLOUD_OTEL_ENABLED:-0}
+      TRIADA_CLOUD_OTEL_EXPORTER_OTLP_ENDPOINT: ${TRIADA_CLOUD_OTEL_EXPORTER_OTLP_ENDPOINT:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8100:8100"
+    restart: unless-stopped
+
+  worker:
+    build: ./cloud_control_plane
+    command: ["uv", "run", "python", "worker.py"]
+    environment:
+      TRIADA_CLOUD_REDIS_URL: redis://redis:6379/0
+      TRIADA_CLOUD_ENVIRONMENT: development
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=15d
+    volumes:
+      - ./ops/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./ops/monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - triada-prometheus:/prometheus
+    depends_on:
+      cloud:
+        condition: service_started
+    ports:
+      - "127.0.0.1:9090:9090"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:12.1.1
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-change-me}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - triada-grafana:/var/lib/grafana
+      - ./ops/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./ops/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      prometheus:
+        condition: service_started
+    ports:
+      - "127.0.0.1:3001:3000"
+    restart: unless-stopped
+
+  backup:
+    image: postgres:17-alpine
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGDATABASE: triada
+      PGUSER: triada
+      PGPASSWORD: ${TRIADA_POSTGRES_PASSWORD:-change-me}
+      BACKUP_DIR: /backups
+      RETENTION_DAYS: ${TRIADA_BACKUP_RETENTION_DAYS:-14}
+    volumes:
+      - triada-backups:/backups
+      - ./ops/postgres/backup.sh:/usr/local/bin/triada-backup.sh:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["while true; do /usr/local/bin/triada-backup.sh; sleep 86400; done"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  backup-verify:
+    image: postgres:17-alpine
+    environment:
+      BACKUP_DIR: /backups
+    volumes:
+      - triada-backups:/backups:ro
+      - ./ops/backup/verify_latest.sh:/usr/local/bin/verify-latest.sh:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["sleep 60; while true; do /usr/local/bin/verify-latest.sh; sleep 86400; done"]
+    restart: unless-stopped
+
+volumes:
+  cpm-data:
+  triada-postgres:
+  triada-redis:
+  triada-backups:
+  triada-prometheus:
+  triada-grafana:

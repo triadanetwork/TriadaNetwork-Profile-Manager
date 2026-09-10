@@ -1,0 +1,7 @@
+{
+  "version": "2.3.0-rc.1",
+  "channel": "beta",
+  "download_url": "https://downloads.example.com/TriadaNetwork-Setup-2.3.0-rc.1.exe",
+  "sha256": "REPLACE_WITH_SHA256",
+  "installer_args": []
+}

@@ -1,0 +1,136 @@
+[project]
+name = "triada-network"
+version = "2.3.0-rc.1"
+description = "Triada Network browser infrastructure and profile management platform"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Triada Network" }]
+keywords = [
+    "camoufox",
+    "antidetect",
+    "triada-network",
+    "browser-fingerprint",
+    "playwright",
+    "fastapi",
+    "firefox",
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Framework :: FastAPI",
+    "Topic :: Internet :: WWW/HTTP :: Browsers",
+]
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.10",
+    "pydantic-settings>=2.6",
+    "sqlalchemy>=2.0",
+    "camoufox[geoip]>=0.5.4",
+    "playwright>=1.50,<1.61",
+    "python-dotenv>=1.0",
+    "python-multipart>=0.0.18",
+    "aiofiles>=24.1",
+    "openpyxl>=3.1",
+    "cryptography>=44.0",
+    # argon2id password hashing for user accounts (OWASP first choice; memory-hard,
+    # unlike bcrypt, and without bcrypt's 72-byte input truncation).
+    "argon2-cffi>=23.1",
+    "loguru>=0.7",
+    "psutil>=6.1",
+    # socks so a SOCKS5 proxy can be checked, not only HTTP ones.
+    "httpx[socks]>=0.28",
+]
+
+[project.optional-dependencies]
+chrome-migration = [
+    "pycryptodome>=3.19",
+    "pyyaml>=6.0",
+    # Windows App-Bound Encryption (v20) unwrap needs the DPAPI/token APIs.
+    # Gated to Windows so a macOS/Linux install of the extra never pulls it in.
+    "pywin32>=306; sys_platform == 'win32'",
+]
+desktop = ["pywebview>=5.0", "pystray>=0.19", "Pillow>=10.0"]
+build = ["pywebview>=5.0", "pystray>=0.19", "Pillow>=10.0", "pyinstaller>=6.0"]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+    "ruff>=0.8",
+    "mypy>=1.13",
+]
+
+[project.scripts]
+# `camoufox-pm` is the documented and packaged name.  Keep the product-name
+# command too, so existing early installs continue to work.
+triada-network = "camoufox_pm.cli:main"
+camoufox-pm = "camoufox_pm.cli:main"
+
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/camoufox_pm", "src/triada_desktop"]
+# The bundled web UI is generated (scripts/build_webui.py) and git-ignored, so
+# include it explicitly when building a wheel.
+artifacts = ["src/camoufox_pm/webui/**"]
+
+[tool.hatch.build.targets.sdist]
+# Ship source only — keep the huge web build artifacts out of the sdist.
+exclude = [
+    "/web/node_modules",
+    "/web/.next",
+    "/web/out",
+    "/src/camoufox_pm/webui",
+    "/dist",
+    "/.venv",
+    "/.mypy_cache",
+    "/.pytest_cache",
+    "/.ruff_cache",
+    "/data",
+    "/demo_data",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "W", "C4"]
+ignore = ["E501"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI dependency-injection helpers are called in argument defaults by design.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastapi.Header",
+    "fastapi.Path",
+    "fastapi.File",
+    "fastapi.Form",
+    "fastapi.Body",
+    "fastapi.Security",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "browser: real Camoufox launch (opt-in, slow, requires 'camoufox fetch')",
+]
+
+[tool.mypy]
+packages = ["camoufox_pm"]
+ignore_missing_imports = true
+# Check our code only; third-party stubs (numpy via camoufox) can use newer syntax.
+follow_imports = "silent"
+
+[tool.coverage.run]
+source = ["src/camoufox_pm"]

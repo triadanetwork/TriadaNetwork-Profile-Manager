@@ -1,0 +1,440 @@
+@import "tailwindcss";
+
+/*
+ * Triada Network — Browser Infrastructure.
+ *
+ * A dense control surface: near-black canvas, hairline rules instead of boxes,
+ * monospace for machine values, with a restrained monochrome Triada palette.
+ * for the primary action and the running state. Everything else is greyscale so
+ * a running browser is the only thing that draws the eye.
+ *
+ * Uses system font stacks so the desktop bundle and Turbopack build do not depend
+ * on next/font/google or external font downloads.
+ */
+
+@theme {
+  --color-canvas: #000000;
+  --color-surface: #0a0a0a;
+  --color-raised: #141414;
+  --color-line: #2b2b2b;
+  --color-line-strong: #4a4a4a;
+
+  --color-ink: #ffffff;
+  --color-ink-dim: #c0c0c0;
+  --color-ink-faint: #808080;
+
+  --color-signal: #c0c0c0;
+  --color-signal-soft: #ffffff;
+  --color-signal-shade: #262626;
+
+  --color-danger: #f2555a;
+  --color-danger-shade: #3a1418;
+  /* Detectable-but-not-fatal. Distinct from --color-signal, which means "this is
+     the primary action" or "this profile is running" and nothing else. */
+  --color-warn: #d8a13a;
+  --color-ok: #3fb950;
+
+  --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    min-width: 0;
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Tabular figures keep dense numeric columns from shifting. */
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* One focus treatment everywhere, keyboard-only. */
+  :focus-visible {
+    outline: 2px solid var(--color-signal);
+    outline-offset: 1px;
+    border-radius: 3px;
+  }
+
+  ::selection {
+    background: var(--color-signal-shade);
+    color: var(--color-ink);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-line-strong);
+    border: 3px solid var(--color-canvas);
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-ink-faint);
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+    color: inherit;
+    /* Preflight forces text-transform: none on buttons, which breaks uppercase
+       inherited from a container (e.g. sortable table headers). */
+    text-transform: inherit;
+    letter-spacing: inherit;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-ink-faint);
+  }
+}
+
+@layer components {
+  /* --- Form controls ---------------------------------------------------- */
+
+  .field {
+    width: 100%;
+    background: var(--color-canvas);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-md);
+    padding: 7px 10px;
+    color: var(--color-ink);
+    transition:
+      border-color 0.12s ease,
+      background 0.12s ease;
+  }
+
+  .field:hover:not(:disabled) {
+    border-color: var(--color-line-strong);
+  }
+
+  .field:focus {
+    outline: none;
+    border-color: var(--color-signal);
+    background: var(--color-surface);
+  }
+
+  .field:disabled {
+    opacity: 0.5;
+  }
+
+  select.field {
+    appearance: none;
+    /* Chevron drawn inline so no network request is needed. */
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239195a0' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 9px center;
+    padding-right: 28px;
+  }
+
+  .field-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-ink-faint);
+    margin-bottom: 5px;
+  }
+
+  /* --- Buttons ---------------------------------------------------------- */
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 11px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background 0.12s ease,
+      border-color 0.12s ease,
+      color 0.12s ease;
+  }
+
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  /* Primary interaction follows the Triada monochrome system. */
+  .btn-primary {
+    background: var(--color-signal);
+    color: #000000;
+    font-weight: 600;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: var(--color-signal-soft);
+  }
+
+  .btn-default {
+    background: var(--color-raised);
+    border-color: var(--color-line);
+    color: var(--color-ink);
+  }
+
+  .btn-default:hover:not(:disabled) {
+    background: var(--color-line);
+    border-color: var(--color-line-strong);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--color-ink-dim);
+  }
+
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--color-raised);
+    color: var(--color-ink);
+  }
+
+  .btn-danger {
+    background: transparent;
+    border-color: var(--color-line);
+    color: var(--color-danger);
+  }
+
+  .btn-danger:hover:not(:disabled) {
+    background: var(--color-danger-shade);
+    border-color: var(--color-danger);
+  }
+
+  /* --- Surfaces --------------------------------------------------------- */
+
+  .panel {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-lg);
+  }
+
+  /* --- Motion ----------------------------------------------------------- */
+
+  /* Rows fade up in sequence so a long list reads as one movement. */
+  @keyframes row-in {
+    from {
+      opacity: 0;
+      transform: translateY(3px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .row-in {
+    animation: row-in 0.22s ease-out backwards;
+  }
+
+  @keyframes overlay-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes dialog-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px) scale(0.99);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .overlay-in {
+    animation: overlay-in 0.12s ease-out;
+  }
+
+  .dialog-in {
+    animation: dialog-in 0.16s cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+
+  /* The running indicator — the one thing that moves on its own. */
+  @keyframes signal-pulse {
+    0%,
+    100% {
+      opacity: 1;
+      box-shadow: 0 0 0 0 rgb(192 192 192 / 0.35);
+    }
+    50% {
+      opacity: 0.75;
+      box-shadow: 0 0 0 3px rgb(192 192 192 / 0);
+    }
+  }
+
+  .signal-pulse {
+    animation: signal-pulse 2s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .row-in,
+    .overlay-in,
+    .dialog-in,
+    .signal-pulse {
+      animation: none;
+    }
+  }
+}
+
+@layer components {
+  .page-shell {
+    min-height: 100%;
+    padding: 28px 30px 42px;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 22px;
+  }
+
+  .page-header h1 {
+    margin-top: 4px;
+    font-size: 25px;
+    line-height: 1.15;
+    font-weight: 600;
+    letter-spacing: -0.035em;
+  }
+
+  .page-header h2,
+  .panel h2 {
+    font-size: 15px;
+    line-height: 1.25;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+
+  .page-subtitle {
+    margin-top: 5px;
+    color: var(--color-ink-faint);
+    font-size: 12px;
+  }
+
+  .eyebrow {
+    color: var(--color-ink-faint);
+    font-size: 10px;
+    line-height: 1.2;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 9px;
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    background: var(--color-surface);
+    color: var(--color-ink-dim);
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .status-chip-live {
+    border-color: rgb(192 192 192 / 0.2);
+    color: var(--color-ink);
+  }
+
+  .live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-signal);
+    box-shadow: 0 0 0 3px rgb(192 192 192 / 0.08);
+  }
+
+  .icon-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--color-ink-dim);
+    font-size: 11px;
+    transition: color 0.12s ease;
+  }
+
+  .icon-link:hover { color: var(--color-ink); }
+
+  .action-card {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 11px;
+    padding: 14px;
+    color: var(--color-ink-dim);
+    transition: background 0.12s ease, border-color 0.12s ease;
+  }
+
+  .action-card:hover {
+    background: var(--color-raised);
+    border-color: var(--color-line-strong);
+    color: var(--color-ink);
+  }
+
+  .action-card strong { display: block; color: var(--color-ink); font-size: 12px; font-weight: 600; }
+  .action-card span { display: block; margin-top: 2px; font-size: 11px; color: var(--color-ink-faint); }
+
+  @media (max-width: 800px) {
+    .page-shell { padding: 20px 16px 30px; }
+    .page-header { align-items: flex-start; flex-direction: column; }
+  }
+}
+
+@layer components {
+  .page-shell { min-height: 100%; padding: 28px 30px 42px; }
+  .page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
+  .page-header h1 { margin-top: 4px; font-size: 25px; line-height: 1.15; font-weight: 600; letter-spacing: -0.035em; }
+  .page-header h2, .panel h2 { font-size: 15px; line-height: 1.25; font-weight: 600; letter-spacing: -0.015em; }
+  .page-subtitle { margin-top: 5px; color: var(--color-ink-faint); font-size: 12px; }
+  .eyebrow { color: var(--color-ink-faint); font-size: 10px; line-height: 1.2; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
+  .status-chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 9px; border: 1px solid var(--color-line); border-radius: 999px; background: var(--color-surface); color: var(--color-ink-dim); font-size: 11px; white-space: nowrap; }
+  .status-chip-live { border-color: rgb(192 192 192 / 0.2); color: var(--color-ink); }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-signal); box-shadow: 0 0 0 3px rgb(192 192 192 / 0.08); }
+  .icon-link { display: inline-flex; align-items: center; gap: 5px; color: var(--color-ink-dim); font-size: 11px; transition: color 0.12s ease; }
+  .icon-link:hover { color: var(--color-ink); }
+  .action-card { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 11px; padding: 14px; color: var(--color-ink-dim); transition: background 0.12s ease, border-color 0.12s ease; }
+  .action-card:hover { background: var(--color-raised); border-color: var(--color-line-strong); color: var(--color-ink); }
+  .action-card strong { display: block; color: var(--color-ink); font-size: 12px; font-weight: 600; }
+  .action-card span { display: block; margin-top: 2px; font-size: 11px; color: var(--color-ink-faint); }
+  @media (max-width: 800px) { .page-shell { padding: 20px 16px 30px; } .page-header { align-items: flex-start; flex-direction: column; } }
+}

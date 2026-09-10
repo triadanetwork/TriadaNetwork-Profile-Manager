@@ -1,0 +1,39 @@
+{
+  "title": "Triada Network Overview",
+  "uid": "triada-overview",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Cloud Up",
+      "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+      "targets": [{"expr": "up{job=\"triada-cloud\"}", "refId": "A"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP Requests / sec",
+      "gridPos": {"x": 6, "y": 0, "w": 9, "h": 6},
+      "targets": [{"expr": "sum(rate(triada_http_requests_total[5m]))", "legendFormat": "req/s", "refId": "A"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "p95 HTTP latency",
+      "gridPos": {"x": 15, "y": 0, "w": 9, "h": 6},
+      "targets": [{"expr": "histogram_quantile(0.95, sum by (le) (rate(triada_http_request_duration_seconds_bucket[5m])))", "legendFormat": "p95", "refId": "A"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "5xx rate",
+      "gridPos": {"x": 0, "y": 6, "w": 12, "h": 6},
+      "targets": [{"expr": "sum(rate(triada_http_requests_total{status=~\"5..\"}[5m]))", "legendFormat": "5xx/s", "refId": "A"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "In-flight requests",
+      "gridPos": {"x": 12, "y": 6, "w": 12, "h": 6},
+      "targets": [{"expr": "triada_http_in_flight", "legendFormat": "in-flight", "refId": "A"}]
+    }
+  ]
+}
