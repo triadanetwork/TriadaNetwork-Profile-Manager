@@ -92,7 +92,7 @@ jobs:
         run: |
           unzip -t /tmp/triada-network-v2.3.0-rc.1.zip
           ! unzip -l /tmp/triada-network-v2.3.0-rc.1.zip | grep -E "profiles\.db|\.tnb(x)?$|\.cookies\.json$|triada-network-v2.3.0-rc.1/(logs|backups|data|cache|temp)/|/node_modules/|/\.next/|/__pycache__/"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: triada-network-v2.3.0-rc.1-source
           path: /tmp/triada-network-v2.3.0-rc.1.zip
